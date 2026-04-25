@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ylesan — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F3EF;
+  --surface:#FFFFFF;
+  --surface2:#FAFAF8;
+  --border:#E8E5DF;
+  --border2:#D4D0C8;
+  --text:#1C1A17;
+  --muted:#6B6760;
+  --hint:#A8A49E;
+  --gold:#B8920A;
+  --gold-light:#FDF8E7;
+  --gold-mid:#E8D57A;
+  --dark:#2C2820;
+  --green:#1A6B4A;
+  --green-light:#EBF7F2;
+  --red:#8B2E2E;
+  --red-light:#FBF0F0;
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-xs:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md:0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+}
+
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--dark);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{padding:2rem 1.5rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.08)}
+.logo-mark{font-family:'Playfair Display',serif;font-size:22px;color:#fff;letter-spacing:0.12em;font-weight:400}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.2em;text-transform:uppercase;margin-top:4px}
+
+/* SECTION SWITCHER */
+.section-switcher{margin:1rem 0.75rem 0.5rem;display:flex;flex-direction:column;gap:4px}
+.section-switcher label{font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:0.15em;text-transform:uppercase;padding:0 4px}
+.section-select{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-xs);color:rgba(255,255,255,0.8);font-size:13px;font-family:'Inter',sans-serif;padding:9px 32px 9px 12px;cursor:pointer;outline:none;width:100%;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;min-height:40px}
+.section-select:focus{border-color:rgba(184,146,10,0.5);background-color:rgba(255,255,255,0.12)}
+.section-select option{background:#2C2820;color:#fff}
+
+/* ROAS TABLE */
+.roas-table-wrap{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--border)}
+.roas-table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+.roas-table th{background:var(--dark);color:rgba(255,255,255,0.85);font-weight:600;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:10px 12px;text-align:right;white-space:nowrap;border-bottom:2px solid rgba(255,255,255,0.1)}
+.roas-table th:first-child{text-align:left;border-right:1px solid rgba(255,255,255,0.1)}
+.roas-table td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--border);color:var(--text);transition:background 0.1s;vertical-align:middle}
+.roas-table td:first-child{text-align:left;font-weight:500;color:var(--dark);border-right:1px solid var(--border);background:var(--surface2);min-width:120px}
+.roas-table tr:hover td{background:var(--gold-light)}
+.roas-table tr:hover td:first-child{background:var(--gold-light)}
+.roas-table tr:last-child td{border-bottom:none}
+.roas-table .td-green{color:var(--green);font-weight:600}
+.roas-table .td-red{color:var(--red);font-weight:600}
+.roas-table .td-gold{color:var(--gold);font-weight:600}
+.roas-table .td-computed{color:var(--muted);font-size:12px}
+.roas-table input.cell-input{background:transparent;border:none;text-align:right;width:100%;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);outline:none;padding:0;min-height:unset}
+.roas-table input.cell-input:focus{background:rgba(184,146,10,0.07);border-radius:4px;padding:0 4px}
+.roas-table input.cell-input.name-input{text-align:left;font-weight:500}
+.add-period-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px dashed var(--border2);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--muted);background:var(--surface);transition:all 0.15s;width:100%;font-family:'Inter',sans-serif;margin-top:0.75rem}
+.add-period-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-light)}
+.roas-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.roas-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;text-align:center}
+.roas-stat .rsl{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+.roas-stat .rsv{font-size:20px;font-weight:500;color:var(--text)}
+.roas-stat.rs-gold{background:var(--gold-light);border-color:rgba(184,146,10,0.2)}.roas-stat.rs-gold .rsv{color:var(--gold)}
+.roas-stat.rs-green{background:var(--green-light);border-color:rgba(26,107,74,0.15)}.roas-stat.rs-green .rsv{color:var(--green)}
+.col-hint{font-size:10px;color:rgba(255,255,255,0.35);font-weight:400;display:block;margin-top:1px}
+.roas-info{background:var(--gold-light);border:1px solid rgba(184,146,10,0.2);border-radius:var(--radius-sm);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:13px;color:var(--gold);display:flex;align-items:flex-start;gap:10px}
+.roas-info b{font-weight:600}
+.delete-row-btn{background:none;border:none;color:var(--hint);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:all 0.15s;line-height:1}
+.delete-row-btn:hover{color:var(--red);background:var(--red-light)}
+.sidebar-nav{padding:1.25rem 0.75rem;flex:1}
+.nav-section{font-size:9px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:0.15em;text-transform:uppercase;padding:0 0.75rem;margin:1.25rem 0 0.5rem}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-xs);cursor:pointer;font-size:13px;color:rgba(255,255,255,0.55);transition:all 0.15s;margin-bottom:2px;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.85)}
+.nav-item.active{background:rgba(184,146,10,0.18);color:#E8C84A;font-weight:500}
+.nav-item .ni-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0;opacity:0.7}
+.nav-item.active .ni-icon{opacity:1}
+.nav-item .ni-count{margin-left:auto;font-size:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);padding:2px 7px;border-radius:20px;min-width:22px;text-align:center}
+.nav-item.active .ni-count{background:rgba(184,146,10,0.25);color:#E8C84A}
+.folder-indent{margin-left:10px;padding-left:8px;border-left:1px solid rgba(255,255,255,0.07)}
+.add-folder{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0.75rem 0;border-radius:var(--radius-xs);cursor:pointer;font-size:12px;color:rgba(255,255,255,0.3);transition:all 0.15s;border:1px dashed rgba(255,255,255,0.12)}
+.add-folder:hover{color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.04)}
+.sidebar-footer{padding:1.25rem;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px}
+.export-btn{width:100%;padding:10px 16px;background:linear-gradient(135deg,#B8920A,#8B6D08);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;letter-spacing:0.01em}
+.export-btn:hover{background:linear-gradient(135deg,#C89D0E,#9A7A0A);transform:translateY(-1px)}
+.export-btn:active{transform:translateY(0)}
+.export-btn.secondary{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7)}
+.export-btn.secondary:hover{background:rgba(255,255,255,0.14);color:#fff;transform:translateY(-1px)}
+
+/* MAIN */
+.main{padding:2.5rem;overflow-y:auto;max-width:900px}
+
+/* HEADER */
+.page-header{margin-bottom:2rem}
+.page-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--text);letter-spacing:0.01em}
+.page-sub{font-size:13px;color:var(--muted);margin-top:6px}
+.header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+.btn-row{display:flex;gap:8px;flex-shrink:0;margin-top:4px}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;font-weight:400;display:flex;align-items:center;gap:7px;min-height:44px}
+.btn:hover{background:var(--surface2);border-color:var(--border2)}
+.btn.primary{background:var(--dark);color:#fff;border-color:var(--dark)}
+.btn.primary:hover{background:#3A352C}
+.btn.danger{background:var(--red-light);color:var(--red);border-color:#E8C5C5}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem}
+.card-label{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1.25rem}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem 2rem}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:12px;font-weight:500;color:var(--muted)}
+.field-input-row{display:flex;align-items:center;gap:8px}
+.field-unit{font-size:12px;color:var(--hint);flex-shrink:0}
+.computed-val{font-size:12px;color:var(--red);font-weight:500;white-space:nowrap;flex-shrink:0}
+input[type=number],input[type=text],select,textarea{padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;transition:border 0.15s,box-shadow 0.15s;outline:none;width:100%;min-height:44px}
+input[type=number]:focus,input[type=text]:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,146,10,0.1)}
+input[type=number]{text-align:right}
+textarea{resize:vertical;min-height:70px}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+/* BREAKDOWN */
+.breakdown-wrap{background:var(--surface2);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1.25rem}
+.breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.breakdown-row:last-child{border-bottom:none}
+.br-label{color:var(--muted)}
+.br-val{font-weight:500;color:var(--text)}
+.breakdown-total{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600;padding:10px 0 0;margin-top:6px;border-top:2px solid var(--border2)}
+
+/* METRICS */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.metric-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.metric{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.1rem;text-align:center}
+.metric .ml{font-size:10px;font-weight:600;color:var(--hint);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+.metric .mv{font-size:22px;font-weight:500;color:var(--text)}
+.metric.m-gold{background:var(--gold-light);border-color:rgba(184,146,10,0.2)}.metric.m-gold .mv{color:var(--gold)}
+.metric.m-green{background:var(--green-light);border-color:rgba(26,107,74,0.15)}.metric.m-green .mv{color:var(--green)}
+.metric.m-red{background:var(--red-light);border-color:rgba(139,46,46,0.15)}.metric.m-red .mv{color:var(--red)}
+
+/* SAVED ITEMS */
+.saved-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:0.75rem;cursor:pointer;transition:all 0.2s}
+.saved-item:hover{border-color:rgba(184,146,10,0.4);box-shadow:0 4px 20px rgba(184,146,10,0.08);transform:translateY(-1px)}
+.si-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.si-name{font-size:15px;font-weight:500;color:var(--text)}
+.si-meta{font-size:12px;color:var(--hint);margin-top:3px}
+.si-folder-badge{font-size:11px;color:var(--gold);background:var(--gold-light);border:1px solid rgba(184,146,10,0.2);padding:3px 10px;border-radius:20px;flex-shrink:0;font-weight:500}
+.si-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.si-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;text-align:center}
+.si-stat .ssl{font-size:10px;color:var(--hint);margin-bottom:3px}
+.si-stat .ssv{font-size:13px;font-weight:500;color:var(--text)}
+.si-note{font-size:12px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-style:italic}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;user-select:none;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:500}
+
+/* EMPTY */
+.empty{text-align:center;padding:4rem 1rem;color:var(--hint);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.empty-icon{font-size:36px;margin-bottom:1rem;opacity:0.5}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:1.25rem 0}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--radius);padding:2rem;width:460px;max-width:90vw;box-shadow:var(--shadow-md);transform:translateY(8px);transition:transform 0.2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;margin-bottom:1.5rem}
+.modal-field{margin-bottom:1rem}
+.modal-field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.5rem}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--dark);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;opacity:0;transform:translateY(10px);transition:all 0.25s;z-index:200;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* MOBILE TOPBAR */
+.mobile-topbar{display:none;background:var(--dark);padding:0 1rem;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:50;flex-shrink:0}
+.mobile-topbar .logo-mark{font-size:18px;letter-spacing:0.12em}
+.mobile-menu-btn{background:none;border:none;color:rgba(255,255,255,0.7);font-size:20px;cursor:pointer;padding:8px;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
+
+/* MOBILE NAV DRAWER */
+.mobile-drawer{position:fixed;inset:0;z-index:150;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.mobile-drawer.open{opacity:1;pointer-events:all}
+.mobile-drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,0.5)}
+.mobile-drawer-panel{position:absolute;left:0;top:0;bottom:0;width:280px;background:var(--dark);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform 0.25s;overflow-y:auto}
+.mobile-drawer.open .mobile-drawer-panel{transform:translateX(0)}
+
+/* MOBILE EXPORT BUTTONS */
+.mobile-export-row{display:none;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.mobile-export-row .btn{flex:1;min-width:120px;font-size:12px;padding:10px 12px;justify-content:center}
+
+/* PRINT / PDF */
+@media print{
+  .sidebar,.mobile-topbar,.mobile-drawer,.toast,.btn-row,.modal-overlay,.export-btn,.mobile-export-row,.add-folder,.sidebar-footer{display:none!important}
+  .app{display:block}
+  .main{padding:0;max-width:none}
+  body{background:#fff}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid;margin-bottom:1rem}
+  .saved-item{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  .page-title{font-size:22px}
+  .metric .mv{font-size:18px}
+  .print-header{display:block!important}
+}
+.print-header{display:none;text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #B8920A}
+.print-header h1{font-family:'Playfair Display',serif;font-size:24px;color:#2C2820}
+.print-header p{font-size:12px;color:#6B6760;margin-top:4px}
+
+@media(max-width:720px){
+  .app{grid-template-columns:1fr;display:flex;flex-direction:column}
+  .sidebar{display:none}
+  .mobile-topbar{display:flex}
+  .mobile-export-row{display:flex}
+  .main{padding:1rem;flex:1}
+  .metric-grid{grid-template-columns:1fr 1fr}
+  .metric-grid-4{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .si-stats{grid-template-columns:repeat(3,1fr)}
+  .page-title{font-size:22px}
+  .header-row{flex-direction:column;gap:0.75rem}
+  .btn-row{flex-wrap:wrap;margin-top:0}
+  .btn-row .btn{flex:1;min-width:100px;justify-content:center}
+  .card{padding:1.25rem 1rem}
+  .modal{padding:1.5rem;width:100%;max-width:calc(100vw - 2rem);border-radius:var(--radius) var(--radius) 0 0}
+  .modal-overlay{align-items:flex-end}
+  .si-stats{grid-template-columns:repeat(2,1fr)}
+  .field-input-row{flex-wrap:wrap}
+  .computed-val{margin-left:auto}
+  .tabs{margin-bottom:1rem}
+  .tab{padding:8px 14px;font-size:12px}
+  .metric .mv{font-size:18px}
+  .toast{bottom:1rem;right:1rem;left:1rem;justify-content:center}
+  .roas-summary{grid-template-columns:1fr 1fr}
+  .roas-stat .rsv{font-size:17px}
+  .mob-section-select-wrap{display:block}
+}
+</style>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar" id="mobile-topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo-mark" style="font-family:'Playfair Display',serif;color:#fff;letter-spacing:0.12em">YLESAN</div>
+    <select id="mob-section-select" class="section-select" onchange="switchSection(this.value)" style="width:auto;font-size:12px;padding:6px 28px 6px 10px;min-height:34px">
+      <option value="profit">Net Profit</option>
+      <option value="roas">ROAS / META</option>
+    </select>
+  </div>
+  <button class="mobile-menu-btn" onclick="toggleDrawer()">☰</button>
+</div>
+
+<!-- MOBILE NAV DRAWER -->
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-bg" onclick="toggleDrawer()"></div>
+  <div class="mobile-drawer-panel">
+    <div class="sidebar-logo">
+      <div class="logo-mark">YLESAN</div>
+      <div class="logo-sub">Dashboard</div>
+    </div>
+    <div class="section-switcher">
+      <label>Sezione</label>
+      <select class="section-select" onchange="switchSection(this.value);toggleDrawer()">
+        <option value="profit">Net Profit Calculator</option>
+        <option value="roas">ROAS / META Analysis</option>
+      </select>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="setView('calc');toggleDrawer()" id="mob-nav-calc">
+        <span class="ni-icon">✦</span> Nuovo calcolo
+      </div>
+      <div class="nav-item" onclick="setView('all');toggleDrawer()" id="mob-nav-all">
+        <span class="ni-icon">◈</span> Tutti i calcoli
+        <span class="ni-count" id="mob-cnt-all">0</span>
+      </div>
+      <div class="nav-section">Cartelle</div>
+      <div class="folder-indent" id="mob-folder-list"></div>
+      <div class="add-folder" onclick="openAddFolder();toggleDrawer()">
+        <span>+</span> Nuova cartella
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="export-btn" onclick="exportCSV();toggleDrawer()">
+        <span>↓</span> CSV
+      </button>
+      <button class="export-btn secondary" onclick="exportExcel();toggleDrawer()">
+        <span>↓</span> Excel (.xlsx)
+      </button>
+      <button class="export-btn secondary" onclick="exportPDF();toggleDrawer()">
+        <span>⎙</span> PDF / Stampa
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">YLESAN</div>
+    <div class="logo-sub">Dashboard</div>
+  </div>
+  <div class="section-switcher">
+    <label>Sezione</label>
+    <select class="section-select" id="desktop-section-select" onchange="switchSection(this.value)">
+      <option value="profit">Net Profit Calculator</option>
+      <option value="roas">ROAS / META Analysis</option>
+    </select>
+  </div>
+  <div class="sidebar-nav" id="profit-sidebar-nav">
+    <div class="nav-item active" onclick="setView('calc')" id="nav-calc">
+      <span class="ni-icon">✦</span> Nuovo calcolo
+    </div>
+    <div class="nav-item" onclick="setView('all')" id="nav-all">
+      <span class="ni-icon">◈</span> Tutti i calcoli
+      <span class="ni-count" id="cnt-all">0</span>
+    </div>
+    <div class="nav-section">Cartelle</div>
+    <div class="folder-indent" id="folder-list"></div>
+    <div class="add-folder" onclick="openAddFolder()">
+      <span>+</span> Nuova cartella
+    </div>
+  </div><!-- end profit-sidebar-nav -->
+  <div class="sidebar-footer">
+    <button class="export-btn" onclick="exportCSV()">
+      <span>↓</span> Esporta in CSV
+    </button>
+    <button class="export-btn secondary" onclick="exportExcel()">
+      <span>↓</span> Esporta in Excel
+    </button>
+    <button class="export-btn secondary" onclick="exportPDF()">
+      <span>⎙</span> Stampa / PDF
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="print-header" id="print-header">
+    <h1>YLESAN — Net Profit Report</h1>
+    <p id="print-date"></p>
+  </div>
+
+  <!-- VIEW: CALCULATOR -->
+  <div id="view-calc">
+    <div class="header-row page-header">
+      <div>
+        <div class="page-title">Calcola il netto</div>
+        <div class="page-sub">Inserisci i valori per ottenere il margine netto per unità</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="openSaveModal()">↳ Salva calcolo</button>
+      </div>
+    </div>
+
+    <div class="mobile-export-row">
+      <button class="btn" onclick="exportCSV()"><span>↓</span> CSV</button>
+      <button class="btn" onclick="exportExcel()"><span>↓</span> Excel</button>
+      <button class="btn" onclick="exportPDF()"><span>⎙</span> PDF</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Prodotto</div>
+      <div class="form-grid">
+        <div class="field">
+          <div class="field-label">Tipo prodotto</div>
+          <select id="product" onchange="preset()">
+            <option value="harness">Harness — Infinito</option>
+            <option value="leash">Leash — Infinito</option>
+            <option value="custom">Personalizzato</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Prezzo di vendita (USD)</div>
+          <div class="field-input-row">
+            <input type="number" id="price" value="675" min="0" step="1" oninput="calc()">
+            <span class="field-unit">$</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Costi variabili</div>
+      <div class="form-grid">
+        <div class="field">
+          <div class="field-label">Costo produzione</div>
+          <div class="field-input-row">
+            <input type="number" id="costo_prod" value="31.19" min="0" step="0.01" oninput="calc()">
+            <span class="field-unit">$</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Box / packaging</div>
+          <div class="field-input-row">
+            <input type="number" id="costo_box" value="7.80" min="0" step="0.01" oninput="calc()">
+            <span class="field-unit">$</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Commissione Marco</div>
+          <div class="field-input-row">
+            <input type="number" id="marco_pct" value="8" min="0" max="100" step="0.1" oninput="calc()" style="width:80px;flex-shrink:0">
+            <span class="field-unit">%</span>
+            <span class="computed-val" id="marco_val">= $54.00</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Fee Shopify</div>
+          <div class="field-input-row" style="gap:6px">
+            <input type="number" id="shopify_pct" value="2.9" min="0" max="20" step="0.1" oninput="calc()" style="width:70px;flex-shrink:0">
+            <span class="field-unit">%</span>
+            <span class="field-unit">+$</span>
+            <input type="number" id="shopify_fix" value="0.30" min="0" step="0.01" oninput="calc()" style="width:70px;flex-shrink:0">
+            <span class="computed-val" id="shopify_val">= $19.88</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Costo spedizione</div>
+          <div class="field-input-row">
+            <input type="number" id="shipping" value="12.00" min="0" step="0.01" oninput="calc()">
+            <span class="field-unit">$</span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Ads / marketing</div>
+          <div class="field-input-row">
+            <input type="number" id="ads" value="0" min="0" step="0.01" oninput="calc()">
+            <span class="field-unit">$</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Riepilogo per unità</div>
+      <div class="breakdown-wrap" id="breakdown"></div>
+      <div class="metric-grid">
+        <div class="metric m-red"><div class="ml">Totale costi</div><div class="mv" id="m_costs">—</div></div>
+        <div class="metric m-gold"><div class="ml">Netto / unità</div><div class="mv" id="m_net">—</div></div>
+        <div class="metric m-green"><div class="ml">Margine %</div><div class="mv" id="m_margin">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Proiezione su quantità</div>
+      <div class="form-grid" style="grid-template-columns:200px 1fr;margin-bottom:1.25rem">
+        <div class="field">
+          <div class="field-label">Numero pezzi</div>
+          <div class="field-input-row">
+            <input type="number" id="qty" value="100" min="1" step="1" oninput="calc()">
+            <span class="field-unit">pz</span>
+          </div>
+        </div>
+      </div>
+      <div class="metric-grid-4">
+        <div class="metric"><div class="ml">Revenue</div><div class="mv" id="m_total_rev">—</div></div>
+        <div class="metric m-red"><div class="ml">Costi totali</div><div class="mv" id="m_total_costs">—</div></div>
+        <div class="metric m-gold"><div class="ml">Netto totale</div><div class="mv" id="m_total_net">—</div></div>
+        <div class="metric m-green"><div class="ml">ROI</div><div class="mv" id="m_roi">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: ALL SAVES -->
+  <div id="view-all" style="display:none">
+    <div class="header-row page-header">
+      <div>
+        <div class="page-title" id="view-title">Tutti i calcoli</div>
+        <div class="page-sub" id="view-sub">Storico completo</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="setView('calc')">+ Nuovo</button>
+        <button class="btn primary" onclick="exportCSV()">↓ CSV</button>
+        <button class="btn" onclick="exportExcel()">↓ Excel</button>
+        <button class="btn" onclick="exportPDF()">⎙ PDF</button>
+      </div>
+    </div>
+    <div class="mobile-export-row">
+      <button class="btn" onclick="exportCSV()"><span>↓</span> CSV</button>
+      <button class="btn" onclick="exportExcel()"><span>↓</span> Excel</button>
+      <button class="btn" onclick="exportPDF()"><span>⎙</span> PDF</button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="tab-all" onclick="filterSaved('all')">Tutti</div>
+      <div id="tab-folder-tabs"></div>
+    </div>
+    <div id="saved-list"></div>
+  </div>
+
+  <!-- VIEW: FOLDER -->
+  <div id="view-folder" style="display:none">
+    <div class="header-row page-header">
+      <div>
+        <div class="page-title" id="folder-title">Cartella</div>
+        <div class="page-sub" id="folder-sub"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn danger" onclick="deleteCurrentFolder()">Elimina cartella</button>
+        <button class="btn" onclick="setView('calc')">+ Nuovo</button>
+      </div>
+    </div>
+    <div id="folder-saved-list"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION: ROAS / META ANALYSIS         -->
+  <!-- ══════════════════════════════════════ -->
+  <div id="section-roas" style="display:none">
+
+    <div class="header-row page-header">
+      <div>
+        <div class="page-title">ROAS / META Analysis</div>
+        <div class="page-sub">Analisi per periodo: costi, profitto, break-even ROAS e proiezioni META Ads</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="addRoasPeriod()">+ Periodo</button>
+        <button class="btn" onclick="exportRoasCSV()">↓ CSV</button>
+        <button class="btn" onclick="exportRoasExcel()">↓ Excel</button>
+      </div>
+    </div>
+
+    <div class="mobile-export-row">
+      <button class="btn" onclick="exportRoasCSV()"><span>↓</span> CSV</button>
+      <button class="btn" onclick="exportRoasExcel()"><span>↓</span> Excel</button>
+    </div>
+
+    <!-- Riepilogo sommario -->
+    <div class="roas-summary" id="roas-summary">
+      <div class="roas-stat rs-gold"><div class="rsl">Profitto Medio/ord.</div><div class="rsv" id="rs-avg-profit">—</div></div>
+      <div class="roas-stat"><div class="rsl">Break-even ROAS Medio</div><div class="rsv" id="rs-avg-broas">—</div></div>
+      <div class="roas-stat rs-green"><div class="rsl">Profitto Giornaliero</div><div class="rsv" id="rs-daily">—</div></div>
+      <div class="roas-stat rs-green"><div class="rsl">Profitto Mensile</div><div class="rsv" id="rs-monthly">—</div></div>
+    </div>
+
+    <div class="roas-info">
+      <span>ℹ</span>
+      <div>
+        <b>Come usare:</b> inserisci i dati per ogni periodo di analisi. I campi in bianco sono modificabili direttamente nella tabella. I campi colorati vengono calcolati automaticamente.
+        <br>• <b>BROAS</b> = Total Cost ÷ AOV &nbsp;·&nbsp; <b>Profit–CPA</b> = Profit – CPA &nbsp;·&nbsp; <b>Daily Profit</b> = Profit–CPA × Orders/Day &nbsp;·&nbsp; <b>Monthly</b> = Daily × 30.4
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="roas-table-wrap">
+        <table class="roas-table" id="roas-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Periodo</th>
+              <th>Avg COG<span class="col-hint">costo prod.</span></th>
+              <th>Shipping<span class="col-hint">spedizione</span></th>
+              <th style="color:#E8C84A">Total Cost<span class="col-hint">+4.5% fee</span></th>
+              <th>Avg AOV<span class="col-hint">valore ordine</span></th>
+              <th style="color:#E8C84A">Profit<span class="col-hint">per ordine</span></th>
+              <th style="color:#E8C84A">BROAS<span class="col-hint">break-even</span></th>
+              <th>Avg CPA<span class="col-hint">costo acquis.</span></th>
+              <th style="color:#E8C84A">Profit–CPA<span class="col-hint">netto ads</span></th>
+              <th>Orders/Day<span class="col-hint">META</span></th>
+              <th style="color:#86efac">Daily Profit<span class="col-hint">META</span></th>
+              <th style="color:#86efac">Monthly<span class="col-hint">META</span></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="roas-tbody"></tbody>
+        </table>
+      </div>
+      <button class="add-period-btn" onclick="addRoasPeriod()">
+        <span style="font-size:18px;line-height:1">+</span> Aggiungi periodo
+      </button>
+    </div>
+
+  </div><!-- end section-roas -->
+
+</main>
+</div>
+
+<!-- MODAL: SALVA -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <div class="modal-title">Salva calcolo</div>
+    <div class="modal-field">
+      <label>Nome del calcolo</label>
+      <input type="text" id="save-name" placeholder="es. Harness — Campagna Maggio 2026">
+    </div>
+    <div class="modal-field">
+      <label>Cartella</label>
+      <select id="save-folder"><option value="">— Nessuna cartella —</option></select>
+    </div>
+    <div class="modal-field">
+      <label>Note (opzionale)</label>
+      <textarea id="save-note" placeholder="Aggiungi note o contesto..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('save-modal')">Annulla</button>
+      <button class="btn primary" onclick="saveCalc()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUOVA CARTELLA -->
+<div class="modal-overlay" id="folder-modal">
+  <div class="modal">
+    <div class="modal-title">Nuova cartella</div>
+    <div class="modal-field">
+      <label>Nome cartella</label>
+      <input type="text" id="folder-name" placeholder="es. Campagna Estate 2026" onkeydown="if(event.key==='Enter')addFolder()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('folder-modal')">Annulla</button>
+      <button class="btn primary" onclick="addFolder()">Crea</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETTAGLIO -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-title" id="detail-name"></div>
+    <div id="detail-content"></div>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn danger" onclick="deleteFromDetail()">Elimina</button>
+      <button class="btn" onclick="loadIntoCalc()">Carica nel calcolatore</button>
+      <button class="btn primary" onclick="closeModal('detail-modal')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+const LS_SAVES = 'ylesan_saves_v2';
+const LS_FOLDERS = 'ylesan_folders_v2';
+
+let saves = JSON.parse(localStorage.getItem(LS_SAVES) || '[]');
+let folders = JSON.parse(localStorage.getItem(LS_FOLDERS) || '[]');
+let currentView = 'calc';
+let currentFolder = null;
+let currentFilter = 'all';
+let detailIndex = null;
+
+// ── SYNC REAL-TIME ───────────────────────
+// BroadcastChannel: istantaneo tra tab della stessa origine (desktop ↔ mobile).
+// storage event: fallback automatico.
+// Entrambi i file devono essere aperti sullo stesso dominio (es. GitHub Pages).
+const SYNC_CHANNEL = 'ylesan_sync';
+let syncChannel = null;
+let _suppressSync = false;
+
+try {
+  syncChannel = new BroadcastChannel(SYNC_CHANNEL);
+  syncChannel.onmessage = (e) => applyIncomingSync(e.data);
+} catch(e) { syncChannel = null; }
+
+window.addEventListener('storage', (e) => {
+  if (e.key === LS_SAVES || e.key === LS_FOLDERS || e.key === 'ylesan_sync_ping') {
+    const newSaves   = JSON.parse(localStorage.getItem(LS_SAVES) || '[]');
+    const newFolders = JSON.parse(localStorage.getItem(LS_FOLDERS) || '[]');
+    const newRoas    = JSON.parse(localStorage.getItem('ylesan_roas_v1') || 'null');
+    applyIncomingSync({ from: 'mobile', saves: newSaves, folders: newFolders, roas: newRoas });
+  }
+});
+
+function broadcastChange() {
+  if (_suppressSync) return;
+  const payload = { saves, folders, roas: roasPeriods, from: 'desktop', ts: Date.now() };
+  if (syncChannel) { try { syncChannel.postMessage(payload); } catch(e) {} }
+  try { localStorage.setItem('ylesan_sync_ping', JSON.stringify({ from: 'desktop', ts: Date.now() })); } catch(e) {}
+}
+
+function applyIncomingSync(data) {
+  if (!data || data.from === 'desktop') return;
+  _suppressSync = true;
+  let changed = false;
+  if (data.saves && JSON.stringify(data.saves) !== JSON.stringify(saves)) {
+    saves = data.saves;
+    localStorage.setItem(LS_SAVES, JSON.stringify(saves));
+    changed = true;
+  }
+  if (data.folders && JSON.stringify(data.folders) !== JSON.stringify(folders)) {
+    folders = data.folders;
+    localStorage.setItem(LS_FOLDERS, JSON.stringify(folders));
+    changed = true;
+  }
+  if (data.roas && typeof roasPeriods !== 'undefined' && JSON.stringify(data.roas) !== JSON.stringify(roasPeriods)) {
+    roasPeriods = data.roas;
+    localStorage.setItem('ylesan_roas_v1', JSON.stringify(roasPeriods));
+    if (typeof currentSection !== 'undefined' && currentSection === 'roas') { renderRoasTable(); updateRoasSummary(); }
+  }
+  if (changed) {
+    updateCounts();
+    if (currentView === 'all') renderSavedList();
+    else if (currentView === 'folder') renderFolderList(currentFolder);
+    showToast('Sincronizzato con mobile', '⟳');
+  }
+  _suppressSync = false;
+}
+
+function persist() {
+  localStorage.setItem(LS_SAVES, JSON.stringify(saves));
+  localStorage.setItem(LS_FOLDERS, JSON.stringify(folders));
+  broadcastChange('saves');
+}
+
+function showToast(msg, icon) {
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon || '✓';
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function fmt(n) {
+  return '$' + parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtK(n) {
+  const v = Math.abs(n);
+  if (v >= 1000) return (n < 0 ? '-' : '') + '$' + Math.round(v).toLocaleString('en-US');
+  return fmt(n);
+}
+
+function preset() {
+  const p = document.getElementById('product').value;
+  if (p === 'harness') {
+    document.getElementById('price').value = 675;
+    document.getElementById('costo_prod').value = 31.19;
+    document.getElementById('marco_pct').value = 8;
+    document.getElementById('costo_box').value = 7.80;
+    document.getElementById('shipping').value = 12;
+    document.getElementById('ads').value = 0;
+  } else if (p === 'leash') {
+    document.getElementById('price').value = 475;
+    document.getElementById('costo_prod').value = 39.80;
+    document.getElementById('marco_pct').value = 8;
+    document.getElementById('costo_box').value = 7.80;
+    document.getElementById('shipping').value = 12;
+    document.getElementById('ads').value = 0;
+  }
+  calc();
+}
+
+function getValues() {
+  return {
+    product: document.getElementById('product').value,
+    price: parseFloat(document.getElementById('price').value) || 0,
+    costo_prod: parseFloat(document.getElementById('costo_prod').value) || 0,
+    costo_box: parseFloat(document.getElementById('costo_box').value) || 0,
+    marco_pct: parseFloat(document.getElementById('marco_pct').value) || 0,
+    shopify_pct: parseFloat(document.getElementById('shopify_pct').value) || 0,
+    shopify_fix: parseFloat(document.getElementById('shopify_fix').value) || 0,
+    shipping: parseFloat(document.getElementById('shipping').value) || 0,
+    ads: parseFloat(document.getElementById('ads').value) || 0,
+    qty: parseInt(document.getElementById('qty').value) || 1,
+  };
+}
+
+function computeMetrics(v) {
+  const marco = v.price * (v.marco_pct / 100);
+  const shopify = v.price * (v.shopify_pct / 100) + v.shopify_fix;
+  const total_costs = v.costo_prod + v.costo_box + marco + shopify + v.shipping + v.ads;
+  const net = v.price - total_costs;
+  const margin = v.price > 0 ? (net / v.price) * 100 : 0;
+  const roi = total_costs > 0 ? (net / total_costs) * 100 : 0;
+  return { marco, shopify, total_costs, net, margin, roi };
+}
+
+function calc() {
+  const v = getValues();
+  const m = computeMetrics(v);
+  document.getElementById('marco_val').textContent = '= ' + fmt(m.marco);
+  document.getElementById('shopify_val').textContent = '= ' + fmt(m.shopify);
+  document.getElementById('m_costs').textContent = fmt(m.total_costs);
+  document.getElementById('m_net').textContent = fmt(m.net);
+  document.getElementById('m_margin').textContent = m.margin.toFixed(1) + '%';
+  document.getElementById('m_total_rev').textContent = fmtK(v.price * v.qty);
+  document.getElementById('m_total_costs').textContent = fmtK(m.total_costs * v.qty);
+  document.getElementById('m_total_net').textContent = fmtK(m.net * v.qty);
+  document.getElementById('m_roi').textContent = m.roi.toFixed(1) + '%';
+
+  const rows = [
+    ['Costo produzione', v.costo_prod],
+    ['Box / packaging', v.costo_box],
+    ['Commissione Marco (' + v.marco_pct + '%)', m.marco],
+    ['Fee Shopify (' + v.shopify_pct + '% + $' + v.shopify_fix.toFixed(2) + ')', m.shopify],
+    ['Spedizione', v.shipping],
+    ['Ads / marketing', v.ads],
+  ].filter(r => r[1] > 0);
+
+  document.getElementById('breakdown').innerHTML =
+    rows.map(r => `<div class="breakdown-row"><span class="br-label">${r[0]}</span><span class="br-val">${fmt(r[1])}</span></div>`).join('') +
+    `<div class="breakdown-total"><span>Totale costi</span><span>${fmt(m.total_costs)}</span></div>`;
+}
+
+function toggleDrawer() {
+  document.getElementById('mobile-drawer').classList.toggle('open');
+}
+
+function setView(v, folder) {
+  ['view-calc', 'view-all', 'view-folder'].forEach(id => document.getElementById(id).style.display = 'none');
+  ['nav-calc', 'nav-all', 'mob-nav-calc', 'mob-nav-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  document.querySelectorAll('.folder-nav-item').forEach(el => el.classList.remove('active'));
+  currentView = v;
+  if (v === 'calc') {
+    document.getElementById('view-calc').style.display = '';
+    document.getElementById('nav-calc').classList.add('active');
+    document.getElementById('mob-nav-calc').classList.add('active');
+  } else if (v === 'all') {
+    document.getElementById('view-all').style.display = '';
+    document.getElementById('nav-all').classList.add('active');
+    document.getElementById('mob-nav-all').classList.add('active');
+    currentFilter = 'all';
+    renderTabs();
+    renderSavedList();
+  } else if (v === 'folder') {
+    currentFolder = folder;
+    document.getElementById('view-folder').style.display = '';
+    document.getElementById('folder-title').textContent = folder;
+    const count = saves.filter(s => s.folder === folder).length;
+    document.getElementById('folder-sub').textContent = count + ' calcol' + (count === 1 ? 'o' : 'i');
+    renderFolderList(folder);
+    const el = document.querySelector(`.folder-nav-item[data-folder="${esc(folder)}"]`);
+    if (el) el.classList.add('active');
+  }
+  updateCounts();
+}
+
+function updateCounts() {
+  document.getElementById('cnt-all').textContent = saves.length;
+  document.getElementById('mob-cnt-all').textContent = saves.length;
+  renderSidebarFolders();
+}
+
+function renderSidebarFolders() {
+  const html = folders.map(f => {
+    const cnt = saves.filter(s => s.folder === f).length;
+    return `<div class="nav-item folder-nav-item" data-folder="${esc(f)}" onclick="setView('folder','${esc(f)}')" style="padding-left:8px">
+      <span class="ni-icon" style="font-size:11px">◆</span> ${esc(f)}
+      <span class="ni-count">${cnt}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('folder-list').innerHTML = html;
+  document.getElementById('mob-folder-list').innerHTML = html.replace(/onclick="setView\('folder','([^']+)'\)"/g, `onclick="setView('folder','$1');toggleDrawer()"`);
+}
+
+function renderTabs() {
+  document.getElementById('tab-folder-tabs').innerHTML =
+    folders.map(f => `<div class="tab" onclick="filterSaved('${esc(f)}')" data-ftab="${esc(f)}">${esc(f)}</div>`).join('');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const el = currentFilter === 'all' ? document.getElementById('tab-all') : document.querySelector(`[data-ftab="${currentFilter}"]`);
+  if (el) el.classList.add('active');
+}
+
+function filterSaved(f) {
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const el = f === 'all' ? document.getElementById('tab-all') : document.querySelector(`[data-ftab="${f}"]`);
+  if (el) el.classList.add('active');
+  renderSavedList();
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  let items = saves;
+  if (currentFilter !== 'all') items = saves.filter(s => s.folder === currentFilter);
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">◈</div>Nessun calcolo salvato ancora</div>';
+    return;
+  }
+  list.innerHTML = items.map(s => savedItemHTML(s, saves.indexOf(s))).join('');
+}
+
+function renderFolderList(folder) {
+  const list = document.getElementById('folder-saved-list');
+  const items = saves.filter(s => s.folder === folder);
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">◆</div>Nessun calcolo in questa cartella</div>';
+    return;
+  }
+  list.innerHTML = items.map(s => savedItemHTML(s, saves.indexOf(s))).join('');
+}
+
+function savedItemHTML(s, idx) {
+  const m = computeMetrics(s.values);
+  const netColor = m.net >= 0 ? 'var(--green)' : 'var(--red)';
+  const marginColor = m.margin < 30 ? 'var(--red)' : m.margin < 50 ? 'var(--gold)' : 'var(--green)';
+  const prodLabel = s.values.product === 'harness' ? 'Harness' : s.values.product === 'leash' ? 'Leash' : 'Custom';
+  return `<div class="saved-item" onclick="openDetail(${idx})">
+    <div class="si-top">
+      <div>
+        <div class="si-name">${esc(s.name)}</div>
+        <div class="si-meta">${s.date} · ${prodLabel} · ${s.values.qty} pz</div>
+      </div>
+      ${s.folder ? `<span class="si-folder-badge">◆ ${esc(s.folder)}</span>` : ''}
+    </div>
+    <div class="si-stats">
+      <div class="si-stat"><div class="ssl">Prezzo</div><div class="ssv">${fmt(s.values.price)}</div></div>
+      <div class="si-stat"><div class="ssl">Costi</div><div class="ssv" style="color:var(--red)">${fmt(m.total_costs)}</div></div>
+      <div class="si-stat"><div class="ssl">Netto/pz</div><div class="ssv" style="color:${netColor}">${fmt(m.net)}</div></div>
+      <div class="si-stat"><div class="ssl">Margine</div><div class="ssv" style="color:${marginColor}">${m.margin.toFixed(1)}%</div></div>
+      <div class="si-stat"><div class="ssl">Netto tot.</div><div class="ssv" style="color:${netColor}">${fmtK(m.net * s.values.qty)}</div></div>
+    </div>
+    ${s.note ? `<div class="si-note">${esc(s.note)}</div>` : ''}
+  </div>`;
+}
+
+function openDetail(idx) {
+  detailIndex = idx;
+  const s = saves[idx];
+  const m = computeMetrics(s.values);
+  document.getElementById('detail-name').textContent = s.name;
+  const rows = [
+    { label: 'Data', val: s.date },
+    { label: 'Prodotto', val: s.values.product === 'harness' ? 'Harness Infinito' : s.values.product === 'leash' ? 'Leash Infinito' : 'Personalizzato' },
+    { label: 'Cartella', val: s.folder || '—' },
+    null,
+    { label: 'Prezzo di vendita', val: fmt(s.values.price) },
+    { label: 'Costo produzione', val: fmt(s.values.costo_prod) },
+    { label: 'Box / packaging', val: fmt(s.values.costo_box) },
+    { label: 'Commissione Marco (' + s.values.marco_pct + '%)', val: fmt(m.marco) },
+    { label: 'Fee Shopify', val: fmt(m.shopify) },
+    { label: 'Spedizione', val: fmt(s.values.shipping) },
+    { label: 'Ads / marketing', val: fmt(s.values.ads) },
+    null,
+    { label: 'Totale costi', val: fmt(m.total_costs) },
+    { label: 'Netto per unità', val: fmt(m.net), highlight: true },
+    { label: 'Margine %', val: m.margin.toFixed(1) + '%' },
+    { label: 'ROI %', val: m.roi.toFixed(1) + '%' },
+    null,
+    { label: 'Quantità', val: s.values.qty + ' pz' },
+    { label: 'Revenue totale', val: fmtK(s.values.price * s.values.qty) },
+    { label: 'Netto totale', val: fmtK(m.net * s.values.qty), highlight: true },
+  ];
+  document.getElementById('detail-content').innerHTML =
+    rows.map(r => r === null
+      ? '<div class="divider"></div>'
+      : `<div class="breakdown-row"><span class="br-label">${r.label}</span><span class="br-val" ${r.highlight ? 'style="color:var(--gold)"' : ''}>${r.val}</span></div>`
+    ).join('') +
+    (s.note ? `<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);font-size:13px;color:var(--muted);font-style:italic">${esc(s.note)}</div>` : '');
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function deleteFromDetail() {
+  if (!confirm('Eliminare questo calcolo?')) return;
+  saves.splice(detailIndex, 1);
+  persist();
+  closeModal('detail-modal');
+  updateCounts();
+  if (currentView === 'all') renderSavedList();
+  else if (currentView === 'folder') renderFolderList(currentFolder);
+  showToast('Calcolo eliminato', '✕');
+}
+
+function loadIntoCalc() {
+  const v = saves[detailIndex].values;
+  document.getElementById('product').value = v.product;
+  document.getElementById('price').value = v.price;
+  document.getElementById('costo_prod').value = v.costo_prod;
+  document.getElementById('costo_box').value = v.costo_box;
+  document.getElementById('marco_pct').value = v.marco_pct;
+  document.getElementById('shopify_pct').value = v.shopify_pct;
+  document.getElementById('shopify_fix').value = v.shopify_fix;
+  document.getElementById('shipping').value = v.shipping;
+  document.getElementById('ads').value = v.ads;
+  document.getElementById('qty').value = v.qty;
+  calc();
+  closeModal('detail-modal');
+  setView('calc');
+  showToast('Calcolo caricato', '↺');
+}
+
+function openSaveModal() {
+  document.getElementById('save-folder').innerHTML =
+    '<option value="">— Nessuna cartella —</option>' +
+    folders.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  document.getElementById('save-name').value = '';
+  document.getElementById('save-note').value = '';
+  document.getElementById('save-modal').classList.add('open');
+  setTimeout(() => document.getElementById('save-name').focus(), 150);
+}
+
+function saveCalc() {
+  const name = document.getElementById('save-name').value.trim();
+  if (!name) { document.getElementById('save-name').focus(); return; }
+  const folder = document.getElementById('save-folder').value;
+  const note = document.getElementById('save-note').value.trim();
+  const now = new Date();
+  const date = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  saves.unshift({ name, folder, note, date, ts: now.toISOString(), values: getValues() });
+  persist();
+  closeModal('save-modal');
+  updateCounts();
+  showToast('Calcolo salvato', '✓');
+}
+
+function openAddFolder() {
+  document.getElementById('folder-name').value = '';
+  document.getElementById('folder-modal').classList.add('open');
+  setTimeout(() => document.getElementById('folder-name').focus(), 150);
+}
+
+function addFolder() {
+  const name = document.getElementById('folder-name').value.trim();
+  if (!name) return;
+  if (folders.includes(name)) { alert('Cartella già esistente'); return; }
+  folders.push(name);
+  persist();
+  closeModal('folder-modal');
+  updateCounts();
+  showToast('Cartella "' + name + '" creata', '◆');
+}
+
+function deleteCurrentFolder() {
+  if (!confirm('Eliminare la cartella "' + currentFolder + '"?\nI calcoli rimarranno ma senza cartella.')) return;
+  saves = saves.map(s => s.folder === currentFolder ? { ...s, folder: '' } : s);
+  folders = folders.filter(f => f !== currentFolder);
+  persist();
+  setView('all');
+  showToast('Cartella eliminata', '✕');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+});
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── EXPORT CSV ───────────────────────────
+function exportCSV() {
+  if (!saves.length) { showToast('Nessun calcolo da esportare', '!'); return; }
+
+  const headers = [
+    'Nome', 'Data', 'Cartella', 'Prodotto', 'Note',
+    'Prezzo ($)', 'Costo Produzione ($)', 'Box/Packaging ($)',
+    'Commissione Marco %', 'Commissione Marco ($)',
+    'Fee Shopify %', 'Fee Shopify Fix ($)', 'Fee Shopify Tot ($)',
+    'Spedizione ($)', 'Ads/Marketing ($)',
+    'Totale Costi ($)', 'Netto/Unità ($)', 'Margine %', 'ROI %',
+    'Quantità (pz)', 'Revenue Totale ($)', 'Netto Totale ($)'
+  ];
+
+  const rows = saves.map(s => {
+    const v = s.values;
+    const m = computeMetrics(v);
+    const prodLabel = v.product === 'harness' ? 'Harness Infinito' : v.product === 'leash' ? 'Leash Infinito' : 'Personalizzato';
+    return [
+      s.name, s.date, s.folder || '', prodLabel, s.note || '',
+      v.price.toFixed(2), v.costo_prod.toFixed(2), v.costo_box.toFixed(2),
+      v.marco_pct.toFixed(2), m.marco.toFixed(2),
+      v.shopify_pct.toFixed(2), v.shopify_fix.toFixed(2), m.shopify.toFixed(2),
+      v.shipping.toFixed(2), v.ads.toFixed(2),
+      m.total_costs.toFixed(2), m.net.toFixed(2), m.margin.toFixed(2), m.roi.toFixed(2),
+      v.qty, (v.price * v.qty).toFixed(2), (m.net * v.qty).toFixed(2)
+    ].map(c => `"${String(c).replace(/"/g, '""')}"`);
+  });
+
+  const csv = [headers.map(h => `"${h}"`).join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const datePart = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Ylesan_NetProfit_${datePart}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV scaricato', '↓');
+}
+
+// ── EXPORT EXCEL ─────────────────────────
+function exportExcel() {
+  if (!saves.length) { showToast('Nessun calcolo da esportare', '!'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Libreria Excel non caricata', '!'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Riepilogo completo
+  const headers = [
+    'Nome', 'Data', 'Cartella', 'Prodotto', 'Note',
+    'Prezzo ($)', 'Costo Prod. ($)', 'Box ($)',
+    'Comm. Marco %', 'Comm. Marco ($)',
+    'Fee Shopify %', 'Shopify Fix ($)', 'Shopify Tot ($)',
+    'Spedizione ($)', 'Ads ($)',
+    'Totale Costi ($)', 'Netto/pz ($)', 'Margine %', 'ROI %',
+    'Quantità', 'Revenue Tot. ($)', 'Netto Tot. ($)'
+  ];
+
+  const dataRows = saves.map(s => {
+    const v = s.values;
+    const m = computeMetrics(v);
+    const prodLabel = v.product === 'harness' ? 'Harness Infinito' : v.product === 'leash' ? 'Leash Infinito' : 'Personalizzato';
+    return [
+      s.name, s.date, s.folder || '—', prodLabel, s.note || '',
+      parseFloat(v.price.toFixed(2)), parseFloat(v.costo_prod.toFixed(2)), parseFloat(v.costo_box.toFixed(2)),
+      parseFloat(v.marco_pct.toFixed(2)), parseFloat(m.marco.toFixed(2)),
+      parseFloat(v.shopify_pct.toFixed(2)), parseFloat(v.shopify_fix.toFixed(2)), parseFloat(m.shopify.toFixed(2)),
+      parseFloat(v.shipping.toFixed(2)), parseFloat(v.ads.toFixed(2)),
+      parseFloat(m.total_costs.toFixed(2)), parseFloat(m.net.toFixed(2)),
+      parseFloat(m.margin.toFixed(2)), parseFloat(m.roi.toFixed(2)),
+      v.qty,
+      parseFloat((v.price * v.qty).toFixed(2)),
+      parseFloat((m.net * v.qty).toFixed(2))
+    ];
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+
+  // Column widths
+  ws1['!cols'] = [
+    {wch:30},{wch:20},{wch:18},{wch:18},{wch:25},
+    {wch:12},{wch:13},{wch:10},
+    {wch:13},{wch:13},
+    {wch:13},{wch:13},{wch:13},
+    {wch:12},{wch:10},
+    {wch:14},{wch:12},{wch:10},{wch:10},
+    {wch:10},{wch:14},{wch:12}
+  ];
+
+  // Style header row (bold)
+  const range = XLSX.utils.decode_range(ws1['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const cell = ws1[XLSX.utils.encode_cell({ r: 0, c: C })];
+    if (cell) {
+      cell.s = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '2C2820' } },
+        alignment: { horizontal: 'center' }
+      };
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'Tutti i calcoli');
+
+  // Sheet 2: Riepilogo per cartella
+  if (folders.length > 0) {
+    const summaryRows = [['Cartella', 'N° Calcoli', 'Netto Medio/pz ($)', 'Margine Medio %', 'Netto Tot. ($)']];
+    folders.forEach(f => {
+      const items = saves.filter(s => s.folder === f);
+      if (!items.length) return;
+      const metrics = items.map(s => computeMetrics(s.values));
+      const avgNet = metrics.reduce((a, m) => a + m.net, 0) / metrics.length;
+      const avgMargin = metrics.reduce((a, m) => a + m.margin, 0) / metrics.length;
+      const totalNet = items.reduce((a, s) => {
+        const m = computeMetrics(s.values);
+        return a + m.net * s.values.qty;
+      }, 0);
+      summaryRows.push([f, items.length, parseFloat(avgNet.toFixed(2)), parseFloat(avgMargin.toFixed(2)), parseFloat(totalNet.toFixed(2))]);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(summaryRows);
+    ws2['!cols'] = [{wch:25},{wch:12},{wch:18},{wch:16},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Riepilogo Cartelle');
+  }
+
+  const datePart = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Ylesan_NetProfit_${datePart}.xlsx`);
+  showToast('Excel scaricato', '↓');
+}
+
+// ── EXPORT PDF ───────────────────────────
+function exportPDF() {
+  if (!saves.length && currentView === 'all') {
+    showToast('Nessun calcolo da stampare', '!');
+    return;
+  }
+  document.getElementById('print-date').textContent =
+    'Generato il ' + new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) +
+    ' · ' + saves.length + ' calcoli salvati';
+  // Show all saves view for print if not already there
+  const wasCalc = currentView === 'calc';
+  if (wasCalc) {
+    // Print current calculator state
+    window.print();
+  } else {
+    window.print();
+  }
+  showToast('Stampa avviata', '⎙');
+}
+
+// ── SECTION SWITCHER ─────────────────────
+let currentSection = 'profit';
+
+function switchSection(sec) {
+  currentSection = sec;
+
+  // sync all selects
+  document.querySelectorAll('.section-select, #mob-section-select, #desktop-section-select').forEach(el => {
+    el.value = sec;
+  });
+
+  const profitEls = ['view-calc', 'view-all', 'view-folder'];
+  const profitSidebar = document.getElementById('profit-sidebar-nav');
+  const mobProfitNav = document.getElementById('mob-nav-calc')?.closest('.sidebar-nav');
+  const roasEl = document.getElementById('section-roas');
+
+  if (sec === 'profit') {
+    roasEl.style.display = 'none';
+    if (profitSidebar) profitSidebar.style.display = '';
+    setView(currentView === 'calc' || currentView === 'all' || currentView === 'folder' ? currentView : 'calc');
+  } else {
+    profitEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    if (profitSidebar) profitSidebar.style.display = 'none';
+    roasEl.style.display = '';
+    renderRoasTable();
+    updateRoasSummary();
+  }
+}
+
+// ── ROAS DATA ─────────────────────────────
+const LS_ROAS = 'ylesan_roas_v1';
+
+let roasPeriods = JSON.parse(localStorage.getItem(LS_ROAS) || 'null') || [
+  { name: 'Periodo 1', cog: 26, shipping: 8, aov: 130, cpa: 63, orders_day: 30 }
+];
+
+function persistRoas() {
+  localStorage.setItem(LS_ROAS, JSON.stringify(roasPeriods));
+  broadcastChange('roas');
+}
+
+// ROAS fee constant
+const SHOPIFY_FEE_PCT = 0.045; // 4.5%
+
+function computeRoas(p) {
+  const total_cost = (p.cog + p.shipping) * (1 + SHOPIFY_FEE_PCT);
+  const profit = p.aov - total_cost;
+  const broas = p.aov > 0 ? total_cost / p.aov : 0;
+  const profit_cpa = profit - (p.cpa || 0);
+  const daily_profit = profit_cpa * (p.orders_day || 0);
+  const monthly_profit = daily_profit * 30.4;
+  return { total_cost, profit, broas, profit_cpa, daily_profit, monthly_profit };
+}
+
+function fmtR(n, dec) {
+  if (n === undefined || n === null || isNaN(n)) return '—';
+  const d = dec !== undefined ? dec : 2;
+  return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function renderRoasTable() {
+  const tbody = document.getElementById('roas-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = roasPeriods.map((p, i) => {
+    const r = computeRoas(p);
+    const profitClass = r.profit >= 0 ? 'td-green' : 'td-red';
+    const pcpaClass = r.profit_cpa >= 0 ? 'td-green' : 'td-red';
+    const dailyClass = r.daily_profit >= 0 ? 'td-green' : 'td-red';
+    const monthClass = r.monthly_profit >= 0 ? 'td-green' : 'td-red';
+
+    return `<tr id="roas-row-${i}">
+      <td><input class="cell-input name-input" type="text" value="${escAttr(p.name)}" oninput="updateRoasField(${i},'name',this.value)"></td>
+      <td><input class="cell-input" type="number" value="${p.cog}" min="0" step="0.01" oninput="updateRoasField(${i},'cog',+this.value)"></td>
+      <td><input class="cell-input" type="number" value="${p.shipping}" min="0" step="0.01" oninput="updateRoasField(${i},'shipping',+this.value)"></td>
+      <td class="td-gold td-computed">${fmtR(r.total_cost)}</td>
+      <td><input class="cell-input" type="number" value="${p.aov}" min="0" step="1" oninput="updateRoasField(${i},'aov',+this.value)"></td>
+      <td class="${profitClass} td-computed">${fmtR(r.profit)}</td>
+      <td class="td-gold td-computed">${r.broas.toFixed(4)}x</td>
+      <td><input class="cell-input" type="number" value="${p.cpa || 0}" min="0" step="0.01" oninput="updateRoasField(${i},'cpa',+this.value)"></td>
+      <td class="${pcpaClass} td-computed">${fmtR(r.profit_cpa)}</td>
+      <td><input class="cell-input" type="number" value="${p.orders_day || 0}" min="0" step="1" oninput="updateRoasField(${i},'orders_day',+this.value)"></td>
+      <td class="${dailyClass} td-computed">${fmtR(r.daily_profit, 0)}</td>
+      <td class="${monthClass} td-computed">${fmtR(r.monthly_profit, 0)}</td>
+      <td><button class="delete-row-btn" onclick="deleteRoasPeriod(${i})" title="Elimina">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateRoasField(i, field, val) {
+  roasPeriods[i][field] = val;
+  persistRoas();
+  // Re-render only the computed cells of this row for performance
+  const r = computeRoas(roasPeriods[i]);
+  const row = document.getElementById(`roas-row-${i}`);
+  if (!row) return;
+  const cells = row.querySelectorAll('.td-computed');
+  const values = [
+    fmtR(r.total_cost),
+    fmtR(r.profit),
+    r.broas.toFixed(4) + 'x',
+    fmtR(r.profit_cpa),
+    fmtR(r.daily_profit, 0),
+    fmtR(r.monthly_profit, 0)
+  ];
+  cells.forEach((cell, ci) => {
+    cell.textContent = values[ci];
+    // Update color classes
+    if (ci === 1) { cell.className = 'td-computed ' + (r.profit >= 0 ? 'td-green' : 'td-red'); }
+    if (ci === 3) { cell.className = 'td-computed ' + (r.profit_cpa >= 0 ? 'td-green' : 'td-red'); }
+    if (ci === 4) { cell.className = 'td-computed ' + (r.daily_profit >= 0 ? 'td-green' : 'td-red'); }
+    if (ci === 5) { cell.className = 'td-computed ' + (r.monthly_profit >= 0 ? 'td-green' : 'td-red'); }
+  });
+  updateRoasSummary();
+}
+
+function updateRoasSummary() {
+  if (!roasPeriods.length) {
+    ['rs-avg-profit','rs-avg-broas','rs-daily','rs-monthly'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '—';
+    });
+    return;
+  }
+  const metrics = roasPeriods.map(p => computeRoas(p));
+  const avgProfit = metrics.reduce((a, m) => a + m.profit, 0) / metrics.length;
+  const avgBroas = metrics.reduce((a, m) => a + m.broas, 0) / metrics.length;
+  const totalDaily = metrics.reduce((a, m) => a + m.daily_profit, 0);
+  const totalMonthly = metrics.reduce((a, m) => a + m.monthly_profit, 0);
+
+  const elp = document.getElementById('rs-avg-profit'); if (elp) elp.textContent = fmtR(avgProfit);
+  const elb = document.getElementById('rs-avg-broas'); if (elb) elb.textContent = avgBroas.toFixed(3) + 'x';
+  const eld = document.getElementById('rs-daily'); if (eld) eld.textContent = fmtR(totalDaily, 0);
+  const elm = document.getElementById('rs-monthly'); if (elm) elm.textContent = fmtR(totalMonthly, 0);
+}
+
+function addRoasPeriod() {
+  const n = roasPeriods.length + 1;
+  roasPeriods.push({ name: 'Periodo ' + n, cog: 26, shipping: 8, aov: 130, cpa: 63, orders_day: 30 });
+  persistRoas();
+  renderRoasTable();
+  updateRoasSummary();
+  showToast('Periodo aggiunto', '+');
+}
+
+function deleteRoasPeriod(i) {
+  if (roasPeriods.length <= 1) { showToast('Deve esserci almeno un periodo', '!'); return; }
+  if (!confirm('Eliminare "' + roasPeriods[i].name + '"?')) return;
+  roasPeriods.splice(i, 1);
+  persistRoas();
+  renderRoasTable();
+  updateRoasSummary();
+  showToast('Periodo eliminato', '✕');
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/"/g, '&quot;');
+}
+
+function exportRoasCSV() {
+  if (!roasPeriods.length) { showToast('Nessun dato da esportare', '!'); return; }
+  const headers = ['Periodo','Avg COG ($)','Shipping ($)','Total Cost (+4.5%) ($)','Avg AOV ($)','Profit ($)','BROAS','Avg CPA ($)','Profit-CPA ($)','Orders/Day META','Daily Profit META ($)','Monthly Profit META ($)'];
+  const rows = roasPeriods.map(p => {
+    const r = computeRoas(p);
+    return [p.name, p.cog.toFixed(2), p.shipping.toFixed(2), r.total_cost.toFixed(2), p.aov.toFixed(2),
+      r.profit.toFixed(2), r.broas.toFixed(6), (p.cpa||0).toFixed(2), r.profit_cpa.toFixed(2),
+      (p.orders_day||0), r.daily_profit.toFixed(2), r.monthly_profit.toFixed(2)
+    ].map(c => `"${String(c).replace(/"/g,'""')}"`);
+  });
+  const csv = [headers.map(h => `"${h}"`).join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Ylesan_ROAS_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV scaricato', '↓');
+}
+
+function exportRoasExcel() {
+  if (!roasPeriods.length) { showToast('Nessun dato da esportare', '!'); return; }
+  if (typeof XLSX === 'undefined') { showToast('Libreria Excel non caricata', '!'); return; }
+  const headers = ['Periodo','Avg COG ($)','Shipping ($)','Total Cost +4.5% ($)','Avg AOV ($)','Profit ($)','BROAS','Avg CPA ($)','Profit-CPA ($)','Orders/Day META','Daily Profit META ($)','Monthly Profit META ($)'];
+  const dataRows = roasPeriods.map(p => {
+    const r = computeRoas(p);
+    return [p.name, parseFloat(p.cog.toFixed(2)), parseFloat(p.shipping.toFixed(2)), parseFloat(r.total_cost.toFixed(2)),
+      parseFloat(p.aov.toFixed(2)), parseFloat(r.profit.toFixed(2)), parseFloat(r.broas.toFixed(6)),
+      parseFloat((p.cpa||0).toFixed(2)), parseFloat(r.profit_cpa.toFixed(2)),
+      p.orders_day||0, parseFloat(r.daily_profit.toFixed(2)), parseFloat(r.monthly_profit.toFixed(2))
+    ];
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+  ws['!cols'] = [{wch:18},{wch:12},{wch:12},{wch:18},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:14},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws, 'ROAS Analysis');
+  XLSX.writeFile(wb, `Ylesan_ROAS_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel scaricato', '↓');
+}
+
+
+// ── INIT ─────────────────────────────────
+// Init
+calc();
+updateCounts();
+</script>
+</body>
+</html>
